@@ -39,3 +39,4 @@ Thumbs.db
 logs/
 kaggle_token.txt
 access_token
+datasets/

@@ -56,56 +56,90 @@ def _example_images(cfg: Dict[str, Any], n: int = 3) -> List[List[str]]:
 
 
 def build_demo(cfg: Dict[str, Any], weights: Optional[str] = None):
-    """Create (but do not launch) the Gradio interface.
+    """Create (but do not launch) the Gradio app.
+
+    Two tabs:
+
+    * **Image** - upload a file *or* take a webcam snapshot, get the annotated
+      image + JSON details.
+    * **Live webcam** - the browser streams frames and each one is annotated
+      in near real-time (the browser asks for camera permission).
 
     Args:
         cfg: Loaded configuration.
         weights: Optional checkpoint path; defaults to the run's ``best.pt``.
 
     Returns:
-        A ``gradio.Interface``.
+        A ``gradio.Blocks`` (``TabbedInterface``).
     """
     import gradio as gr
 
     detector = Detector(cfg, weights=weights)
+    major = int(gr.__version__.split(".")[0])
+    # gradio 5 renamed allow_flagging -> flagging_mode
+    flag_kw = {"flagging_mode": "never"} if major >= 5 else {"allow_flagging": "never"}
 
     def detect_faces(image: np.ndarray, conf: float) -> Tuple[np.ndarray, Dict[str, Any]]:
         """Gradio callback: RGB numpy in -> annotated RGB + JSON details out."""
         if image is None:
-            raise gr.Error("Please upload an image first.")
+            raise gr.Error("Please upload an image or take a webcam snapshot first.")
         try:
             annotated_bgr, dets = detector.detect_image(rgb_to_bgr(image), conf=conf)
         except Exception as exc:  # noqa: BLE001 - surface to the UI
             raise gr.Error(f"Detection failed: {exc}") from exc
         return bgr_to_rgb(annotated_bgr), detections_to_json(dets, cfg)
 
+    def detect_stream(frame: np.ndarray, conf: float) -> np.ndarray:
+        """Streaming callback: one webcam frame in -> annotated frame out (no JSON, for speed)."""
+        if frame is None:
+            return None
+        annotated_bgr, _ = detector.detect_image(rgb_to_bgr(frame), conf=conf)
+        return bgr_to_rgb(annotated_bgr)
+
     legend = " · ".join(
         f"<span style='color:rgb({c[2]},{c[1]},{c[0]});font-weight:bold'>{name}</span>"
         for name, c in cfg["class_colors"].items()
     )
-    # gradio 5 renamed allow_flagging -> flagging_mode
-    flag_kw = {"flagging_mode": "never"} if int(gr.__version__.split(".")[0]) >= 5 else {"allow_flagging": "never"}
-    return gr.Interface(
+    description = (
+        "Detects faces and classifies each one as **mask on**, **mask off**, or "
+        f"**mask worn incorrectly**. Legend: {legend}. "
+        f"Model: {cfg['model_variant']} · input {cfg['image_size']}px."
+    )
+    conf_slider = lambda: gr.Slider(  # noqa: E731 - tiny factory, one per tab
+        0.05, 0.95, value=float(cfg["confidence_threshold"]), step=0.05, label="Confidence threshold"
+    )
+
+    image_tab = gr.Interface(
         fn=detect_faces,
         inputs=[
-            gr.Image(type="numpy", label="Upload an Image"),
-            gr.Slider(0.05, 0.95, value=float(cfg["confidence_threshold"]), step=0.05,
-                      label="Confidence threshold"),
+            gr.Image(type="numpy", sources=["upload", "webcam", "clipboard"], label="Upload an image or take a webcam snapshot"),
+            conf_slider(),
         ],
-        outputs=[
-            gr.Image(label="Detection Result"),
-            gr.JSON(label="Detection Details"),
-        ],
+        outputs=[gr.Image(label="Detection Result"), gr.JSON(label="Detection Details")],
         title="Masked Face Detection",
-        description=(
-            "Detects faces and classifies each one as **mask on**, **mask off**, or "
-            f"**mask worn incorrectly**. Legend: {legend}. "
-            f"Model: {cfg['model_variant']} · input {cfg['image_size']}px."
-        ),
+        description=description,
         examples=_example_images(cfg) or None,
         cache_examples=False,
         **flag_kw,
     )
+
+    webcam_tab = gr.Interface(
+        fn=detect_stream,
+        inputs=[gr.Image(type="numpy", sources=["webcam"], streaming=True, label="Webcam (live)"), conf_slider()],
+        outputs=gr.Image(label="Live detection"),
+        live=True,
+        title="Masked Face Detection — live webcam",
+        description="Allow camera access when the browser asks. Frames are sent to the model continuously; "
+                    "expect a few FPS through a Colab share link, more when running locally. " + description,
+        **flag_kw,
+    )
+
+    app = gr.TabbedInterface([image_tab, webcam_tab], tab_names=["Image / snapshot", "Live webcam"],
+                             title="Masked Face Detection")
+    # Expose the callbacks for programmatic use / tests (scripts/smoke_test.py).
+    app.detect_faces = detect_faces
+    app.detect_stream = detect_stream
+    return app
 
 
 def main() -> None:

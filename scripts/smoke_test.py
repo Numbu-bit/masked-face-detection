@@ -137,7 +137,8 @@ def main() -> None:
         from src.utils import bgr_to_rgb
 
         demo = build_demo(cfg)
-        demo.fns[0].fn(bgr_to_rgb(img), 0.25)
+        demo.detect_faces(bgr_to_rgb(img), 0.25)
+        demo.detect_stream(bgr_to_rgb(img), 0.25)
     except ImportError:
         log.warning("gradio not installed - skipping UI check")
 

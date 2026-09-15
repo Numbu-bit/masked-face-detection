@@ -117,7 +117,7 @@ resized to ≤ 640 px, YOLO `.txt` labels, `data.yaml`.
 | **01 data preparation** | download → explore (class histogram, GT samples) → convert & split → validate → preview Albumentations → zip to Drive | 3–5 min |
 | **02 training** | optional 1-epoch smoke test → full training (AdamW, cosine LR, mosaic/mixup, early stop) → curves → quick val | 1–3 h for 100 epochs on the Kaggle set (`yolov8s`, 640 px) |
 | **03 evaluation** | mAP@0.5 / 0.5:0.95, per-class P/R/F1, confusion matrix, PR curves, GPU+CPU FPS, 16-image grid, failure cases, target check with suggestions | 2–3 min |
-| **04 inference demo** | upload/URL image → video file → Colab webcam (snapshot + live) → Gradio public link → export | interactive |
+| **04 inference demo** | upload/URL image → video file → Colab webcam (snapshot + live) → Gradio public link (upload · webcam snapshot · live webcam tab) → export | interactive |
 
 **Disconnected mid-training?** Reopen notebook 02, run the cells top to bottom. The training cell
 finds `weights/last.pt` on Drive and resumes from that epoch. If the run had already finished it

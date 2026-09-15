@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Masked Face Detection</title>
+  <meta name="description" content="Real-time face mask detection in your browser: mask on, mask off, or worn incorrectly." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>😷</text></svg>" />
+  <link rel="stylesheet" href="tailwind.css" />
+  <!-- onnxruntime-web: runs the YOLOv8 ONNX model inside the browser (WebGPU when available, else WASM) -->
+  <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js"></script>
+</head>
+<body class="h-full bg-slate-950 text-slate-100 antialiased">
+  <div class="min-h-full flex flex-col">
+
+    <!-- Header -->
+    <header class="border-b border-slate-800 bg-slate-900/60 backdrop-blur">
+      <div class="mx-auto max-w-7xl px-4 py-4 flex flex-wrap items-center gap-x-6 gap-y-3">
+        <div class="flex items-center gap-3">
+          <span class="text-3xl" aria-hidden="true">😷</span>
+          <div>
+            <h1 class="text-xl font-semibold tracking-tight">Masked Face Detection</h1>
+            <p class="text-xs text-slate-400">YOLOv8 · runs in your browser · nothing is uploaded</p>
+          </div>
+        </div>
+        <ul class="ml-auto flex flex-wrap items-center gap-2 text-xs font-medium" id="legend" aria-label="Class legend"></ul>
+      </div>
+    </header>
+
+    <!-- Main -->
+    <main class="mx-auto w-full max-w-7xl px-4 py-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+
+      <!-- Left: viewer -->
+      <section class="space-y-4">
+        <!-- Mode tabs -->
+        <div class="flex flex-wrap items-center gap-2" role="tablist" aria-label="Input source">
+          <button id="tab-webcam" role="tab" data-mode="webcam" class="tab tab-active">📷 Live webcam</button>
+          <button id="tab-upload" role="tab" data-mode="upload" class="tab">🖼️ Upload image</button>
+          <div class="ml-auto flex items-center gap-2 text-xs text-slate-400">
+            <span id="status-dot" class="inline-block h-2.5 w-2.5 rounded-full bg-slate-600"></span>
+            <span id="status-text">Loading model…</span>
+          </div>
+        </div>
+
+        <!-- Model loading bar -->
+        <div id="progress-wrap" class="h-1.5 w-full overflow-hidden rounded bg-slate-800">
+          <div id="progress-bar" class="h-full w-0 bg-emerald-500 transition-[width] duration-200"></div>
+        </div>
+
+        <!-- Viewer -->
+        <div class="relative overflow-hidden rounded-2xl border border-slate-800 bg-black shadow-2xl">
+          <div class="relative aspect-video w-full">
+            <video id="video" class="absolute inset-0 h-full w-full object-contain" playsinline muted autoplay></video>
+            <img id="photo" alt="" class="absolute inset-0 hidden h-full w-full object-contain" />
+            <canvas id="overlay" class="absolute inset-0 h-full w-full"></canvas>
+
+            <!-- Empty state / drop zone -->
+            <div id="dropzone" class="absolute inset-0 hidden flex-col items-center justify-center gap-3 border-2 border-dashed border-slate-700 text-center text-slate-400">
+              <p class="text-lg">Drop an image here</p>
+              <p class="text-sm">or</p>
+              <label class="btn-primary cursor-pointer">Choose a file<input id="file-input" type="file" accept="image/*" class="sr-only" /></label>
+            </div>
+
+            <!-- Webcam empty state -->
+            <div id="webcam-idle" class="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center text-slate-400">
+              <p class="text-lg">Camera is off</p>
+              <p class="max-w-sm text-sm">Click <em>Start camera</em> and allow camera access when your browser asks.</p>
+            </div>
+          </div>
+          <!-- Banner (mirrors the Python overlay text) -->
+          <div id="banner" class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-800 bg-slate-900/80 px-4 py-2 font-mono text-sm">
+            <span id="banner-text">Faces: 0 | Masked: 0 | Unmasked: 0 | Incorrect: 0</span>
+            <span id="perf" class="text-xs text-slate-400"></span>
+          </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="flex flex-wrap items-center gap-3">
+          <button id="btn-start" class="btn-primary" disabled>▶ Start camera</button>
+          <button id="btn-stop" class="btn-secondary hidden">■ Stop</button>
+          <button id="btn-flip" class="btn-secondary hidden" title="Switch front / back camera">🔄 Flip</button>
+          <button id="btn-snapshot" class="btn-secondary hidden" title="Download the annotated frame">⬇ Snapshot</button>
+          <button id="btn-detect" class="btn-primary hidden">Detect</button>
+          <button id="btn-clear" class="btn-secondary hidden">Clear</button>
+        </div>
+      </section>
+
+      <!-- Right: settings + results -->
+      <aside class="space-y-4">
+        <div class="card">
+          <h2 class="card-title">Settings</h2>
+          <label class="block text-sm">
+            <span class="flex justify-between"><span>Confidence threshold</span><span id="conf-value" class="font-mono text-slate-400">0.45</span></span>
+            <input id="conf" type="range" min="0.05" max="0.95" step="0.05" value="0.45" class="mt-2 w-full accent-emerald-500" />
+          </label>
+          <label class="mt-4 block text-sm">
+            <span class="flex justify-between"><span>NMS IoU threshold</span><span id="iou-value" class="font-mono text-slate-400">0.50</span></span>
+            <input id="iou" type="range" min="0.1" max="0.9" step="0.05" value="0.5" class="mt-2 w-full accent-emerald-500" />
+          </label>
+          <fieldset class="mt-4 text-sm">
+            <legend class="mb-1">Where to run the model</legend>
+            <label class="flex items-center gap-2"><input type="radio" name="backend" value="browser" checked class="accent-emerald-500" /> In this browser <span class="text-xs text-slate-500" id="ep-label"></span></label>
+            <label class="mt-1 flex items-center gap-2"><input type="radio" name="backend" value="server" class="accent-emerald-500" /> On the server (API)</label>
+          </fieldset>
+        </div>
+
+        <div class="card">
+          <h2 class="card-title">Detections</h2>
+          <ul id="det-list" class="space-y-1 text-sm text-slate-300"><li class="text-slate-500">No detections yet.</li></ul>
+          <details class="mt-3 text-xs">
+            <summary class="cursor-pointer text-slate-400">Raw JSON</summary>
+            <pre id="det-json" class="mt-2 max-h-64 overflow-auto rounded bg-slate-950 p-2 font-mono text-[11px] text-slate-400">{}</pre>
+          </details>
+        </div>
+
+        <div class="card text-xs text-slate-400">
+          <h2 class="card-title">About</h2>
+          <p>Classes: <em>with_mask</em>, <em>without_mask</em>, <em>mask_worn_incorrectly</em>. Trained with Ultralytics YOLOv8 on the Kaggle Face-Mask dataset; exported to ONNX and executed by onnxruntime-web. Webcam frames stay on your device in browser mode.</p>
+          <p class="mt-2">API: <code class="font-mono">POST /api/detect</code> (multipart <code>file</code>, query <code>conf</code>, <code>iou</code>).</p>
+        </div>
+      </aside>
+    </main>
+
+    <footer class="mt-auto border-t border-slate-800 px-4 py-3 text-center text-xs text-slate-500">
+      Masked Face Detection · MIT · <a class="underline hover:text-slate-300" href="https://github.com/Numbu-bit/masked-face-detection">GitHub</a>
+    </footer>
+  </div>
+
+  <div id="toast" class="pointer-events-none fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-lg bg-rose-600 px-4 py-2 text-sm text-white opacity-0 shadow-lg transition-opacity"></div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

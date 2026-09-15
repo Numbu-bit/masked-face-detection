@@ -41,3 +41,7 @@ kaggle_token.txt
 access_token
 datasets/
 demo/examples/example_*
+
+# Web app
+web/node_modules/
+web/models/*.part

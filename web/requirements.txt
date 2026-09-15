@@ -1,0 +1,10 @@
+# Deployment backend only (Render free tier: no GPU, 512 MB RAM).
+# Deliberately NO torch / ultralytics / opencv - inference is ONNX Runtime on CPU
+# and preprocessing is Pillow + numpy.
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+python-multipart==0.0.20
+onnxruntime==1.20.1
+numpy==1.26.4
+Pillow==10.4.0
+PyYAML==6.0.2

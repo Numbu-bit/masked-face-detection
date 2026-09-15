@@ -1,0 +1,22 @@
+# Render Blueprint - https://render.com/docs/blueprint-spec
+# Deploy: Render dashboard -> New -> Blueprint -> pick this repo.
+services:
+  - type: web
+    name: masked-face-detection
+    runtime: python
+    plan: free                      # 512 MB RAM, spins down after 15 min idle (first request ~30-60 s)
+    region: oregon
+    branch: main
+    buildCommand: pip install -r web/requirements.txt
+    startCommand: uvicorn web.server:app --host 0.0.0.0 --port $PORT --workers 1
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: MODEL_URL           # only needed if web/models/model.onnx is NOT committed
+        sync: false              # set it in the dashboard (e.g. a GitHub Release asset URL)
+      - key: CONF_THRESHOLD
+        value: "0.45"
+      - key: IOU_THRESHOLD
+        value: "0.5"

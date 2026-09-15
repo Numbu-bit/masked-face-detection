@@ -29,7 +29,8 @@ Every annotated frame also carries a banner: `Faces: 5 | Masked: 3 | Unmasked: 2
 ```
 masked-face-detection/
 ├── README.md
-├── requirements.txt                  # pinned versions
+├── requirements.txt                  # tested stack (exact pins on API-relevant libs)
+├── requirements-fallback.txt         # range pins; notebooks use it automatically if the above fails
 ├── configs/default.yaml              # ALL hyper-parameters, paths, thresholds
 ├── notebooks/
 │   ├── 01_data_preparation.ipynb     # download → VOC/YOLO convert → stratified split → data.yaml → Drive backup
@@ -244,7 +245,7 @@ a MobileNetV2 backbone assembled from `torchvision` blocks, with a plain PyTorch
 - Every cell that can fail (download, credentials, GPU, file I/O, subprocess) raises a message
   saying what to do next.
 - `seed=42` for Python, NumPy, PyTorch and CUDA; `deterministic=True` in Ultralytics.
-- Pinned `requirements.txt` (including `fastapi`/`starlette` pins that Gradio 4.31 needs).
+- Pinned `requirements.txt` (including `fastapi`/`starlette` pins that Gradio 4.31 needs); the install cell falls back to `requirements-fallback.txt` (range pins) if Colab's Python has no wheels for the pins.
 
 ---
 

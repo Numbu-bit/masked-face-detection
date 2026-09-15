@@ -1,3 +1,14 @@
+# =============================================================================
+# Primary, tested stack (Python 3.10 - 3.12; this is what Colab ships today).
+# Exact pins on the libraries whose API we depend on; lower bounds only on
+# compiled libraries that Colab pre-installs, so pip never has to downgrade
+# them or build from source.
+#
+# If this file fails to install (e.g. Colab moves to Python 3.13, where
+# numpy<2 has no wheels), the notebooks automatically fall back to
+# requirements-fallback.txt.
+# =============================================================================
+
 # Core detection framework (PyTorch-based). torch/torchvision come pre-installed
 # on Colab; ultralytics pulls compatible versions if they are missing.
 ultralytics==8.2.50
@@ -5,30 +16,28 @@ ultralytics==8.2.50
 # Data augmentation (used by the custom dataset path and the SSD fallback)
 albumentations==1.4.4
 
-# Image / video I/O
-opencv-python-headless==4.9.0.80
-Pillow==10.3.0
-
-# Numerics, config, plotting
-numpy==1.26.4
-pandas==2.2.2
-PyYAML==6.0.1
-matplotlib==3.8.4
-seaborn==0.13.2
-scikit-learn==1.5.0
-tqdm==4.66.4
+# Image / video I/O and numerics
+opencv-python-headless>=4.9.0.80,<5
+numpy>=1.26.4,<2            # ultralytics 8.2.x and gradio 4.x both require numpy<2
+Pillow>=10.3.0,<11          # gradio 4.31 requires pillow<11
+pandas>=2.2.2
+PyYAML>=6.0.1
+matplotlib>=3.8.4
+seaborn>=0.13.2
+scikit-learn>=1.5.0
+tqdm>=4.66.4
 
 # Demo UI (fastapi/starlette pinned: newer starlette breaks gradio 4.x templating)
 gradio==4.31.0
 fastapi==0.111.0
 starlette==0.37.2
 
-# Export / validation
-onnx==1.16.0
-onnxruntime==1.18.0
-onnxsim==0.4.36
+# Export / validation (onnxslim, used by ultralytics for `simplify=True`,
+# is installed by ultralytics itself on first export)
+onnx>=1.16.0,<1.18
+onnxruntime>=1.18.0
 
-# Dataset download helpers
-kaggle==2.2.4                 # >=2.x: anonymous public downloads + new KGAT_ string tokens
+# Dataset download (>=2.x: anonymous public downloads + new KGAT_ string tokens)
+kaggle==2.2.4
 # roboflow is NOT pinned here: it hard-pins its own opencv-python-headless version
 # and conflicts with the one above. Notebook 01 (Option B) installs it on demand.

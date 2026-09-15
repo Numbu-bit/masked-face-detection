@@ -83,6 +83,8 @@ def build_demo(cfg: Dict[str, Any], weights: Optional[str] = None):
         f"<span style='color:rgb({c[2]},{c[1]},{c[0]});font-weight:bold'>{name}</span>"
         for name, c in cfg["class_colors"].items()
     )
+    # gradio 5 renamed allow_flagging -> flagging_mode
+    flag_kw = {"flagging_mode": "never"} if int(gr.__version__.split(".")[0]) >= 5 else {"allow_flagging": "never"}
     return gr.Interface(
         fn=detect_faces,
         inputs=[
@@ -102,7 +104,7 @@ def build_demo(cfg: Dict[str, Any], weights: Optional[str] = None):
         ),
         examples=_example_images(cfg) or None,
         cache_examples=False,
-        allow_flagging="never",
+        **flag_kw,
     )
 
 

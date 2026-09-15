@@ -6,7 +6,7 @@
 # =============================================================================
 
 ultralytics>=8.3.200,<9
-albumentations>=1.4.4,<2.0        # 2.x renamed the CoarseDropout arguments
+albumentations==1.4.4             # newer 1.4.x pull stringzilla (needs a C++ compiler); 2.x renamed CoarseDropout args
 opencv-python-headless>=4.9.0.80,<5
 numpy>=1.26.4,<3
 Pillow>=10.3.0,<12

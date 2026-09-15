@@ -29,6 +29,6 @@ onnxruntime==1.18.0
 onnxsim==0.4.36
 
 # Dataset download helpers
-kaggle==1.6.14
+kaggle==2.2.4                 # >=2.x: anonymous public downloads + new KGAT_ string tokens
 # roboflow is NOT pinned here: it hard-pins its own opencv-python-headless version
 # and conflicts with the one above. Notebook 01 (Option B) installs it on demand.

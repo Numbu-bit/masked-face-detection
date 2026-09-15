@@ -55,10 +55,10 @@ masked-face-detection/
 
 ## Quick start on Google Colab
 
-1. **Fork / push this repo to GitHub** (or copy the folder to `MyDrive/masked-face-detection/repo`).
+1. The notebooks already point at `https://github.com/Numbu-bit/masked-face-detection` — if you fork, change `REPO_URL` in the second cell (or copy the folder to `MyDrive/masked-face-detection/repo`).
 2. Open a notebook in Colab: *File → Open notebook → GitHub → paste the notebook URL*.
 3. *Runtime → Change runtime type → **T4 GPU***.
-4. In the second cell of each notebook set `REPO_URL` to your fork (skip if you used the Drive copy).
+4. No credentials are needed for the default Kaggle dataset (see below).
 5. Run the notebooks **in order**: `01 → 02 → 03 → 04`. Each starts with the same four cells
    (GPU check, Drive mount + repo, `pip install -r requirements.txt`, seed + config).
 
@@ -76,12 +76,25 @@ MyDrive/masked-face-detection/
 
 ### Providing credentials
 
-| Source | What you need | Where to put it |
-|---|---|---|
-| **Kaggle (Option A, default)** | `kaggle.json` from *kaggle.com → Settings → API → Create New Token* | `MyDrive/kaggle.json`. If missing, notebook 01 prompts you to upload it and copies it to Drive for next time. |
-| **Roboflow (Option B)** | API key from *Roboflow → Settings → API Keys* | Paste into the (commented) Option B cell together with the workspace / project / version you picked on universe.roboflow.com. |
+**Kaggle (Option A, default) — usually no credentials at all.** The dataset is public and the
+Kaggle CLI (≥ 2.x, pinned) downloads public datasets anonymously; notebook 01 tries that first.
 
-Only one option is needed. Credentials never leave your Drive and are git-ignored.
+If Kaggle refuses (rate-limit, policy change), the cell looks for a token. Kaggle no longer
+issues a `kaggle.json` download — *kaggle.com → Settings → API → Generate New Token* shows a
+string starting with `KGAT_`. Give it to the notebook in any of these ways (checked in order):
+
+| Method | How |
+|---|---|
+| Colab secret *(recommended)* | 🔑 icon in Colab's left sidebar → *Add new secret* → name `KAGGLE_API_TOKEN`, value = the string → toggle *Notebook access* on |
+| Drive file | save the string as `MyDrive/kaggle_token.txt` |
+| Legacy file | if you still have an old `kaggle.json`, put it at `MyDrive/kaggle.json` |
+| Paste prompt | the cell asks (hidden input) and saves it to `MyDrive/kaggle_token.txt` for next time |
+
+**Roboflow (Option B)** — API key from *Roboflow → Settings → API Keys*; paste it into the
+(commented) Option B cell together with the workspace / project / version you picked on
+universe.roboflow.com.
+
+Credentials never leave your Drive / Colab secrets and are git-ignored.
 
 ### Datasets
 

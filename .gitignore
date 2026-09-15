@@ -40,3 +40,4 @@ logs/
 kaggle_token.txt
 access_token
 datasets/
+demo/examples/example_*

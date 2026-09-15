@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Data & weights (kept in Google Drive, not in git)
+data/
+runs/
+weights/
+*.pt
+*.onnx
+*.tflite
+*.torchscript
+*.pb
+*_saved_model/
+*.zip
+
+# Credentials — NEVER commit these
+kaggle.json
+.env
+*.key
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs
+*.log
+logs/

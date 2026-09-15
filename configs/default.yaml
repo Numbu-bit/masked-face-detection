@@ -1,0 +1,85 @@
+# =============================================================================
+# Masked Face Detection — single source of truth for every hyper-parameter.
+# Every module in src/ reads from this file; nothing is hard-coded elsewhere.
+# =============================================================================
+
+# ---- Reproducibility --------------------------------------------------------
+seed: 42
+
+# ---- Model ------------------------------------------------------------------
+model_variant: "yolov8s"        # yolov8n | yolov8s | yolov8m
+pretrained: true                # start from COCO-pretrained weights
+num_classes: 3
+class_names: ["with_mask", "without_mask", "mask_worn_incorrectly"]
+
+# BGR colours used everywhere boxes are drawn (OpenCV convention).
+class_colors:
+  with_mask: [0, 200, 0]              # green
+  without_mask: [0, 0, 220]           # red
+  mask_worn_incorrectly: [0, 140, 255] # orange
+
+# ---- Data -------------------------------------------------------------------
+data_root: "/content/data"      # where the raw dataset is unpacked
+image_size: 640                 # use 416 if you hit OOM on free Colab
+batch_size: 16                  # reduce to 8 if OOM on free Colab
+num_workers: 2
+split_ratios: [0.70, 0.15, 0.15]  # train / val / test (stratified by class)
+
+# Kaggle dataset slug (Option A in notebook 01)
+kaggle_dataset: "andrewmvd/face-mask-detection"
+
+# Raw Pascal-VOC class names in the Kaggle dataset -> our canonical names
+voc_class_map:
+  with_mask: "with_mask"
+  without_mask: "without_mask"
+  mask_weared_incorrect: "mask_worn_incorrectly"
+
+# ---- Training ---------------------------------------------------------------
+epochs: 100
+learning_rate: 0.001
+optimizer: "AdamW"              # SGD | Adam | AdamW | auto
+weight_decay: 0.0005
+scheduler: "cosine"             # cosine annealing (cos_lr=true in ultralytics)
+warmup_epochs: 3
+patience: 15                    # early-stopping patience (epochs)
+
+# ---- Augmentation -----------------------------------------------------------
+augment: true
+mosaic: 1.0                     # YOLO mosaic augmentation probability
+mixup: 0.1
+# Albumentations pipeline (used by src/dataset.py and forwarded to Ultralytics)
+albumentations:
+  random_brightness_contrast_p: 0.3
+  horizontal_flip_p: 0.5
+  random_scale_limit: 0.2
+  gaussian_blur_limit: 3
+  gaussian_blur_p: 0.1
+  clahe_p: 0.2
+  color_jitter_p: 0.2
+  coarse_dropout_max_holes: 4
+  coarse_dropout_p: 0.2
+
+# ---- Checkpointing ----------------------------------------------------------
+save_dir: "/content/drive/MyDrive/masked-face-detection/runs"
+run_name: "yolov8s_mask"
+save_period: 10                 # checkpoint every N epochs
+resume: false                   # auto-detected in notebook 02; override here
+
+# ---- Inference --------------------------------------------------------------
+confidence_threshold: 0.45
+iou_threshold: 0.5
+max_detections: 300
+
+# ---- Evaluation targets (notebook 03 prints suggestions if unmet) ----------
+targets:
+  map50: 0.85
+  per_class_f1: 0.80
+  fps_gpu: 30
+
+# ---- Export -----------------------------------------------------------------
+export:
+  formats: ["onnx", "tflite", "torchscript"]
+  opset: 12
+  simplify: true
+  validation_images: 5
+  min_iou: 0.99                 # exported vs. PyTorch boxes must agree this well

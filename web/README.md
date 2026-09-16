@@ -6,7 +6,8 @@ web/
 ├── requirements.txt     # onnxruntime + fastapi + Pillow + numpy  (no torch — fits in 512 MB)
 ├── static/
 │   ├── index.html       # UI (Tailwind CSS)
-│   ├── app.js           # webcam / upload, onnxruntime-web session, drawing
+│   ├── app.js           # webcam / upload, onnxruntime-web session (WebGPU -> WASM), drawing
+│   ├── vendor/ort/      # self-hosted onnxruntime-web 1.20.1 (WebGPU build + WASM binary), `npm run vendor:ort`
 │   ├── yolo.js          # pure pre/post-processing (letterbox, decode, NMS) — unit-tested
 │   └── tailwind.css     # compiled from src/input.css (committed; no Node needed at deploy time)
 ├── src/input.css        # Tailwind source + component classes
@@ -43,7 +44,7 @@ python scripts/prepare_web_model.py --weights /path/to/best.pt          # 416 px
 python scripts/prepare_web_model.py --weights /path/to/best.pt --imgsz 640
 ```
 
-This writes `web/static/models/model.onnx` (~43 MB for yolov8s, ~12 MB for yolov8n) and refreshes `web/static/config.json`.
+This writes `web/static/models/model.onnx` (416 px) and `model_320.onnx` (~43 MB each for yolov8s) and refreshes `web/static/config.json`.
 
 ## 2. Run locally
 
@@ -86,6 +87,18 @@ API or the automatic fallback for browsers without WebAssembly.
 Free web services sleep after 15 idle minutes; the first request afterwards takes 30–60 s.
 If you prefer not to commit the 43 MB model, attach it to a GitHub Release and set `MODEL_URL`
 to the asset URL (web-service deployments only).
+
+## Performance: getting a smooth live webcam
+
+Three things decide the frame rate (shown next to the counts banner):
+
+| | What | How |
+|---|---|---|
+| **WebGPU** | ~20–40 ms/frame on any recent Chrome/Edge (desktop or Android). The status line shows `WebGPU` when active. | Nothing to do — `ort.webgpu.min.js` is self-hosted in `static/vendor/ort/`. Safari/Firefox fall back to WASM. |
+| **WASM threads** | 2–4× faster WASM. Requires the page to be *cross-origin isolated*. The status line says `WASM, 1 thread - enable COOP/COEP headers` when it is not. | **Static Site:** Render dashboard → your site → *Redirects/Rewrites* → **Headers** → add for path `/*`: `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`. **Web Service:** already sent by `server.py`. |
+| **Input size** | 320 px is ~1.7× faster than 416 px with a small accuracy cost; fine for a webcam at arm's length. | Export both (`scripts/prepare_web_model.py` does by default → `model.onnx` + `model_320.onnx`), commit both; the *Model input size* selector appears automatically. |
+
+Camera access, WebGPU and threads all require HTTPS (Render provides it) or `localhost`.
 
 ## Tests
 

@@ -21,12 +21,15 @@ const els = {
   btnDetect: $("btn-detect"), btnClear: $("btn-clear"), fileInput: $("file-input"),
   conf: $("conf"), confValue: $("conf-value"), iou: $("iou"), iouValue: $("iou-value"),
   detList: $("det-list"), detJson: $("det-json"), epLabel: $("ep-label"), toast: $("toast"),
+  modelSize: $("model-size"), modelSizeWrap: $("model-size-wrap"),
 };
 
 const state = {
   info: null,            // /api/info payload
   session: null,         // ort.InferenceSession
   inputName: null, outputName: null, inputW: 640, inputH: 640,
+  models: {},            // {"416": "models/model.onnx", "320": "models/model_320.onnx"}
+  modelSize: null,
   mode: "webcam",        // "webcam" | "upload"
   backend: "browser",    // "browser" | "server"
   stream: null, facingMode: "user", running: false, busy: false,
@@ -125,6 +128,26 @@ async function loadInfo() {
     info.static = true;
   }
   state.info = info;
+  // Available model variants keyed by input size. Older config/info payloads only have model_url.
+  state.models = info.models && Object.keys(info.models).length
+    ? info.models : { [String((info.model_input || [416])[0])]: info.model_url };
+  if (info.static) {
+    // No backend to enumerate files: probe the conventional names so a newly added
+    // models/model_<size>.onnx shows up without editing config.json.
+    await Promise.all([640, 416, 320].filter((sz) => !state.models[sz]).map(async (sz) => {
+      try { const r = await fetch(`models/model_${sz}.onnx`, { method: "HEAD" }); if (r.ok) state.models[sz] = `models/model_${sz}.onnx`; } catch (_) {}
+    }));
+  }
+  const sizes = Object.keys(state.models).map(Number).sort((a, b) => b - a);
+  state.modelSize = sizes.includes(+localStorage.getItem("mfd.modelSize")) ? +localStorage.getItem("mfd.modelSize") : sizes[0];
+  els.modelSize.innerHTML = "";
+  for (const sz of sizes) {
+    const o = document.createElement("option");
+    o.value = sz; o.textContent = `${sz} px${sz === sizes[0] ? " (most accurate)" : sz === sizes[sizes.length - 1] && sizes.length > 1 ? " (fastest)" : ""}`;
+    els.modelSize.appendChild(o);
+  }
+  els.modelSize.value = state.modelSize;
+  els.modelSizeWrap.classList.toggle("hidden", sizes.length < 2);
   if (info.static) {
     // No server -> in-browser inference only.
     const serverRadio = document.querySelector("input[name=backend][value=server]");
@@ -156,29 +179,38 @@ async function fetchModelWithProgress(url) {
 }
 
 async function loadModel() {
-  setStatus("Downloading model…", "bg-amber-400 animate-pulse");
-  const bytes = await fetchModelWithProgress(state.info.model_url);
+  els.progressWrap.classList.remove("hidden"); els.progressBar.style.width = "0%";
+  const url = state.models[state.modelSize];
+  setStatus(`Downloading model (${state.modelSize} px)…`, "bg-amber-400 animate-pulse");
+  const bytes = await fetchModelWithProgress(url);
   setStatus("Initialising runtime…", "bg-amber-400 animate-pulse");
-  ort.env.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/";
-  ort.env.wasm.numThreads = Math.min(4, navigator.hardwareConcurrency || 2);
+  // Self-hosted runtime (web/static/vendor/ort). Threads only work when the page is
+  // cross-origin isolated (COOP/COEP headers) - otherwise ORT silently uses 1 thread.
+  ort.env.wasm.wasmPaths = "vendor/ort/";
+  const threads = self.crossOriginIsolated ? Math.min(4, navigator.hardwareConcurrency || 2) : 1;
+  ort.env.wasm.numThreads = threads;
   const tries = navigator.gpu ? [["webgpu"], ["wasm"]] : [["wasm"]];
-  let lastErr;
+  let lastErr, ep = null;
+  if (state.session) { try { await state.session.release(); } catch (_) {} state.session = null; }
   for (const providers of tries) {
     try {
       state.session = await ort.InferenceSession.create(bytes, { executionProviders: providers, graphOptimizationLevel: "all" });
-      els.epLabel.textContent = `(${providers[0]})`;
+      ep = providers[0];
       break;
     } catch (e) { lastErr = e; console.warn(`EP ${providers[0]} failed:`, e); }
   }
   if (!state.session) throw lastErr;
+  els.epLabel.textContent = ep === "webgpu" ? "(WebGPU)" : `(WASM, ${threads} thread${threads > 1 ? "s" : ""}${threads === 1 && (navigator.hardwareConcurrency || 2) > 1 ? " - enable COOP/COEP headers for more" : ""})`;
   state.inputName = state.session.inputNames[0];
   state.outputName = state.session.outputNames[0];
-  [state.inputW, state.inputH] = state.info.model_input || [640, 640];
+  state.inputW = state.inputH = +state.modelSize;
   work.width = state.inputW; work.height = state.inputH;
   els.progressBar.style.width = "100%";
   setTimeout(() => els.progressWrap.classList.add("hidden"), 600);
-  setStatus("Model ready", "bg-emerald-500");
+  setStatus(`Model ready · ${state.modelSize} px · ${ep === "webgpu" ? "WebGPU" : "WASM"}`, "bg-emerald-500");
   els.btnStart.disabled = false;
+  // warm-up: first run compiles kernels (WebGPU) and would otherwise show as a long first frame
+  try { await state.session.run({ [state.inputName]: new ort.Tensor("float32", new Float32Array(3 * state.inputW * state.inputH), [1, 3, state.inputH, state.inputW]) }); } catch (_) {}
 }
 
 /** Run the model in-browser on any drawable source (video / img / canvas). */
@@ -338,6 +370,15 @@ els.dropzone.addEventListener("drop", (e) => loadImageFile(e.dataTransfer.files[
 document.addEventListener("paste", (e) => { const f = [...(e.clipboardData?.files || [])][0]; if (f && state.mode === "upload") loadImageFile(f); });
 els.conf.addEventListener("input", () => { els.confValue.textContent = (+els.conf.value).toFixed(2); if (state.mode === "upload") detectPhoto(); });
 els.iou.addEventListener("input", () => { els.iouValue.textContent = (+els.iou.value).toFixed(2); if (state.mode === "upload") detectPhoto(); });
+els.modelSize.addEventListener("change", async () => {
+  state.modelSize = +els.modelSize.value;
+  try { localStorage.setItem("mfd.modelSize", state.modelSize); } catch (_) {}
+  const wasRunning = state.running;
+  if (wasRunning) stopCamera();
+  els.btnStart.disabled = true;
+  try { await loadModel(); } catch (e) { console.error(e); toast(`Could not load model: ${e.message}`); }
+  if (wasRunning) startCamera(); else if (state.mode === "upload") detectPhoto();
+});
 document.querySelectorAll("input[name=backend]").forEach((r) => r.addEventListener("change", (e) => { state.backend = e.target.value; state.fpsSamples = []; if (state.mode === "upload") detectPhoto(); }));
 window.addEventListener("resize", () => { if (state.lastDets.length && !state.running) { const s = state.mode === "webcam" ? els.video : els.photo; drawOverlay(state.lastDets, s.videoWidth || s.naturalWidth, s.videoHeight || s.naturalHeight); } });
 

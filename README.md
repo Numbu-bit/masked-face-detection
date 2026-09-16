@@ -145,6 +145,7 @@ epochs: 100
 optimizer: AdamW            # lr 0.001, wd 0.0005, cosine schedule, 3 warm-up epochs
 patience: 15                # early stopping
 mosaic: 1.0  mixup: 0.1     # YOLO-side augmentation
+degrees: 25                 # rotation augmentation -> robust to tilted heads (v2 runs)
 albumentations: …           # brightness/contrast, flip, scale, blur, CLAHE, colour-jitter, coarse dropout
 confidence_threshold: 0.45
 iou_threshold: 0.5
@@ -163,7 +164,8 @@ Update from `runs/<run_name>/eval/metrics_test.json` after re-training (notebook
 
 | Model | img | mAP@0.5 | mAP@0.5:0.95 | F1 with_mask | F1 without_mask | F1 incorrect | FPS T4 | FPS CPU |
 |---|---|---|---|---|---|---|---|---|
-| yolov8s (default) | 640 | **0.865** | 0.577 | 0.907 | 0.815 | 0.740 | 58.7 | 3.7 |
+| yolov8s `yolov8s_mask` (v1, no rotation aug) | 640 | **0.865** | 0.577 | 0.907 | 0.815 | 0.740 | 58.7 | 3.7 |
+| yolov8s `yolov8s_mask_v2` (degrees=25) | 640 | _TBD_ | _TBD_ | _TBD_ | _TBD_ | _TBD_ | _TBD_ | _TBD_ |
 | yolov8n | 640 | _TBD_ | _TBD_ | _TBD_ | _TBD_ | _TBD_ | _TBD_ | _TBD_ |
 
 Targets: mAP@0.5 ≥ 0.85 ✅, ≥ 30 FPS on T4 ✅, every class F1 ≥ 0.80 — met for `with_mask` and `without_mask`;

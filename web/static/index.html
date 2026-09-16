@@ -7,8 +7,9 @@
   <meta name="description" content="Real-time face mask detection in your browser: mask on, mask off, or worn incorrectly." />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>😷</text></svg>" />
   <link rel="stylesheet" href="tailwind.css" />
-  <!-- onnxruntime-web: runs the YOLOv8 ONNX model inside the browser (WebGPU when available, else WASM) -->
-  <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js"></script>
+  <!-- onnxruntime-web (self-hosted, WebGPU build): runs the YOLOv8 ONNX model inside the browser.
+       WebGPU on Chrome/Edge; multithreaded WASM elsewhere (threads need the COOP/COEP headers, see web/README.md). -->
+  <script src="vendor/ort/ort.webgpu.min.js"></script>
 </head>
 <body class="h-full bg-slate-950 text-slate-100 antialiased">
   <div class="min-h-full flex flex-col">
@@ -96,6 +97,10 @@
           <label class="mt-4 block text-sm">
             <span class="flex justify-between"><span>NMS IoU threshold</span><span id="iou-value" class="font-mono text-slate-400">0.50</span></span>
             <input id="iou" type="range" min="0.1" max="0.9" step="0.05" value="0.5" class="mt-2 w-full accent-emerald-500" />
+          </label>
+          <label class="mt-4 block text-sm" id="model-size-wrap">
+            <span class="flex justify-between"><span>Model input size</span><span class="text-xs text-slate-500">smaller = faster</span></span>
+            <select id="model-size" class="mt-2 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm"></select>
           </label>
           <fieldset class="mt-4 text-sm">
             <legend class="mb-1">Where to run the model</legend>

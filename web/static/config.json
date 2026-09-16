@@ -25,6 +25,9 @@
   "confidence_threshold": 0.45,
   "iou_threshold": 0.5,
   "model_url": "models/model.onnx",
+  "models": {
+    "416": "models/model.onnx"
+  },
   "model_input": [
     416,
     416

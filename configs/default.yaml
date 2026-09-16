@@ -52,6 +52,8 @@ patience: 15                    # early-stopping patience (epochs)
 augment: true
 mosaic: 1.0                     # YOLO mosaic augmentation probability
 mixup: 0.1
+degrees: 25.0                   # random rotation +-deg: makes detection robust to tilted heads
+translate: 0.1
 # Albumentations pipeline (used by src/dataset.py and forwarded to Ultralytics)
 albumentations:
   random_brightness_contrast_p: 0.3
@@ -66,7 +68,7 @@ albumentations:
 
 # ---- Checkpointing ----------------------------------------------------------
 save_dir: "/content/drive/MyDrive/masked-face-detection/runs"
-run_name: "yolov8s_mask"
+run_name: "yolov8s_mask_v2"       # v2 = trained with rotation augmentation (degrees=25)
 save_period: 10                 # checkpoint every N epochs
 resume: false                   # auto-detected in notebook 02; override here
 

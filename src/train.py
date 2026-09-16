@@ -77,6 +77,8 @@ def yolo_train_kwargs(cfg: Dict[str, Any], data_yaml: str, device: str) -> Dict[
         augment=bool(cfg["augment"]),
         mosaic=float(cfg["mosaic"]),
         mixup=float(cfg["mixup"]),
+        degrees=float(cfg.get("degrees", 0.0)),
+        translate=float(cfg.get("translate", 0.1)),
         fliplr=float(cfg["albumentations"]["horizontal_flip_p"]),
         scale=float(cfg["albumentations"]["random_scale_limit"]),
     )

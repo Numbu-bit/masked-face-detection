@@ -205,8 +205,41 @@ def summarise(dets: List[Dict[str, Any]]) -> Dict[str, int]:
 # App
 # --------------------------------------------------------------------------- #
 
+import mimetypes
+
+mimetypes.add_type("application/wasm", ".wasm")
+mimetypes.add_type("text/javascript", ".mjs")
+
 app = FastAPI(title="Masked Face Detection", version="1.0.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+
+
+@app.middleware("http")
+async def cross_origin_isolation(request, call_next):
+    """COOP/COEP make the page cross-origin isolated -> multithreaded WASM in onnxruntime-web.
+
+    All assets are same-origin (runtime is vendored), so require-corp breaks nothing.
+    """
+    response = await call_next(request)
+    response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+    response.headers["Cross-Origin-Embedder-Policy"] = "require-corp"
+    return response
+
+
+def available_models() -> Dict[str, str]:
+    """``{"416": "models/model.onnx", "320": "models/model_320.onnx"}`` from the models dir.
+
+    Convention: ``model.onnx`` is the default (size read from the loaded session);
+    ``model_<N>.onnx`` are alternative input sizes.
+    """
+    out: Dict[str, str] = {}
+    if _detector is not None:
+        out[str(_detector.input_w)] = "models/model.onnx"
+    for p in sorted(MODELS_DIR.glob("model_*.onnx")):
+        size = p.stem.split("_", 1)[1]
+        if size.isdigit():
+            out[size] = f"models/{p.name}"
+    return out
 
 _detector: Optional[OnnxDetector] = None
 _model_error: Optional[str] = None
@@ -237,6 +270,7 @@ def info() -> Dict[str, Any]:
         "confidence_threshold": DEFAULT_CONF,
         "iou_threshold": DEFAULT_IOU,
         "model_url": "models/model.onnx",
+        "models": available_models(),
         "model_loaded": _detector is not None,
         "model_input": [_detector.input_w, _detector.input_h] if _detector else None,
         "model_error": _model_error,

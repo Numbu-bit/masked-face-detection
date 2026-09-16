@@ -6,10 +6,12 @@
   "scripts": {
     "build:css": "tailwindcss -i src/input.css -o static/tailwind.css --minify",
     "watch:css": "tailwindcss -i src/input.css -o static/tailwind.css --watch",
-    "test": "node --test tests/yolo.test.mjs"
+    "test": "node --test tests/yolo.test.mjs",
+    "vendor:ort": "node -e \"const fs=require('fs');fs.mkdirSync('static/vendor/ort',{recursive:true});for(const f of ['ort.webgpu.min.js','ort-wasm-simd-threaded.jsep.mjs','ort-wasm-simd-threaded.jsep.wasm'])fs.copyFileSync('node_modules/onnxruntime-web/dist/'+f,'static/vendor/ort/'+f)\""
   },
   "devDependencies": {
-    "tailwindcss": "^3.4.17",
-    "onnxruntime-node": "^1.20.1"
+    "onnxruntime-node": "^1.20.1",
+    "onnxruntime-web": "^1.20.1",
+    "tailwindcss": "^3.4.17"
   }
 }

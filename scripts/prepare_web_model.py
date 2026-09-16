@@ -83,7 +83,8 @@ def main() -> None:
         dummy = np.random.rand(1, 3, args.imgsz, args.imgsz).astype(np.float32)
         sess.run(None, {inp.name: dummy})
         log.info("onnxruntime forward pass OK")
-    print(f"\nDone. Next: commit {dest.relative_to(ROOT)} (or upload it and set MODEL_URL), then deploy.")
+    shown = dest.relative_to(ROOT) if dest.is_relative_to(ROOT) else dest
+    print(f"\nDone. Next: commit {shown} (or upload it and set MODEL_URL), then deploy.")
 
 
 if __name__ == "__main__":

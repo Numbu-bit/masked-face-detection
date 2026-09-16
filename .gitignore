@@ -44,5 +44,5 @@ demo/examples/example_*
 
 # Web app
 web/node_modules/
-web/models/*.part
-!web/models/model.onnx
+web/static/models/*.part
+!web/static/models/model.onnx

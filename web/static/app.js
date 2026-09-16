@@ -111,9 +111,27 @@ function drawOverlay(dets, srcW, srcH) {
 
 // --------------------------------------------------------------------------- Model
 async function loadInfo() {
-  const r = await fetch("api/info");
-  if (!r.ok) throw new Error(`api/info -> ${r.status}`);
-  state.info = await r.json();
+  // Web-service deployment: the FastAPI backend describes itself at api/info.
+  // Static deployment (no backend): fall back to config.json written by scripts/prepare_web_model.py.
+  let info = null;
+  try {
+    const r = await fetch("api/info", { headers: { Accept: "application/json" } });
+    if (r.ok && (r.headers.get("content-type") || "").includes("json")) info = await r.json();
+  } catch (_) { /* no backend */ }
+  if (!info) {
+    const r = await fetch("config.json");
+    if (!r.ok) throw new Error("neither api/info nor config.json is available");
+    info = await r.json();
+    info.static = true;
+  }
+  state.info = info;
+  if (info.static) {
+    // No server -> in-browser inference only.
+    const serverRadio = document.querySelector("input[name=backend][value=server]");
+    serverRadio.disabled = true;
+    serverRadio.parentElement.classList.add("opacity-40");
+    serverRadio.parentElement.title = "Not available on a static deployment";
+  }
   els.conf.value = state.info.confidence_threshold; els.confValue.textContent = (+els.conf.value).toFixed(2);
   els.iou.value = state.info.iou_threshold; els.iouValue.textContent = (+els.iou.value).toFixed(2);
   renderLegend();
@@ -331,6 +349,7 @@ window.addEventListener("resize", () => { if (state.lastDets.length && !state.ru
       await loadModel();
     } catch (e) {
       console.error(e);
+      if (state.info.static) throw new Error(`in-browser runtime failed (${e.message}) and this deployment has no server API`);
       // Browser inference unavailable (old browser, blocked WASM) - fall back to the API transparently.
       state.session = null; state.backend = "server";
       document.querySelector("input[name=backend][value=server]").checked = true;

@@ -12,9 +12,9 @@ Responsibilities
 
 The model file is resolved in this order:
 1. ``MODEL_PATH`` env var
-2. ``web/models/model.onnx`` (commit it, or let ``scripts/prepare_web_model.py``
+2. ``web/static/models/model.onnx`` (commit it, or let ``scripts/prepare_web_model.py``
    put it there)
-3. downloaded from ``MODEL_URL`` env var into ``web/models/model.onnx`` at
+3. downloaded from ``MODEL_URL`` env var into ``web/static/models/model.onnx`` at
    startup (e.g. a GitHub Release asset).
 
 No torch, no ultralytics, no OpenCV - the whole backend fits in ~250 MB RAM.
@@ -45,7 +45,7 @@ log = logging.getLogger("web")
 WEB_DIR = Path(__file__).resolve().parent
 ROOT = WEB_DIR.parent
 STATIC_DIR = WEB_DIR / "static"
-MODELS_DIR = WEB_DIR / "models"
+MODELS_DIR = STATIC_DIR / "models"   # inside static/ so a pure static deploy serves it too
 CONFIG_PATH = ROOT / "configs" / "default.yaml"
 
 # --------------------------------------------------------------------------- #
@@ -100,7 +100,7 @@ def resolve_model_path() -> Path:
         log.info("Model saved to %s (%.1f MB)", local, local.stat().st_size / 1e6)
         return local
     raise RuntimeError(
-        "No ONNX model found. Either commit web/models/model.onnx (run "
+        "No ONNX model found. Either commit web/static/models/model.onnx (run "
         "scripts/prepare_web_model.py), set MODEL_PATH, or set MODEL_URL to a "
         "downloadable .onnx (e.g. a GitHub Release asset)."
     )
@@ -236,7 +236,7 @@ def info() -> Dict[str, Any]:
         "box_label": CFG.get("box_label"),      # text drawn on boxes; null -> class name
         "confidence_threshold": DEFAULT_CONF,
         "iou_threshold": DEFAULT_IOU,
-        "model_url": "/model/model.onnx",
+        "model_url": "models/model.onnx",
         "model_loaded": _detector is not None,
         "model_input": [_detector.input_w, _detector.input_h] if _detector else None,
         "model_error": _model_error,

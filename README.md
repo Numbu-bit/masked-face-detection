@@ -49,7 +49,7 @@ masked-face-detection/
 │   └── inference.py                  # Detector: image / URL / video / JPEG frame
 ├── scripts/
 │   ├── export_model.py               # ONNX / TFLite / TorchScript + validation vs. PyTorch
-│   ├── prepare_web_model.py          # best.pt -> web/models/model.onnx for the browser app
+│   ├── prepare_web_model.py          # best.pt -> web/static/models/model.onnx for the browser app
 │   └── smoke_test.py                 # 3-minute CPU end-to-end self-test on synthetic data
 └── demo/
     ├── gradio_app.py                 # Gradio web UI (public share link in Colab)
@@ -239,12 +239,13 @@ FastAPI backend that serves it and exposes `POST /api/detect` (onnxruntime on CP
 fallback. It needs no GPU and no PyTorch, so it fits Render's free tier.
 
 ```bash
-python scripts/prepare_web_model.py --weights best.pt     # -> web/models/model.onnx (416 px)
+python scripts/prepare_web_model.py --weights best.pt     # -> web/static/models/model.onnx (416 px)
 pip install -r web/requirements.txt && uvicorn web.server:app --port 8000
 ```
 
-Deploy: Render → *New → Blueprint* → this repo (`render.yaml`). Full instructions, model-hosting
-options and the API reference are in [web/README.md](web/README.md).
+Deploy: Render → *New → Static Site* → publish directory **`web/static`** (no build command), or
+*New → Blueprint* for the Python web service with the HTTP API (`render.yaml`). Full instructions
+and the API reference are in [web/README.md](web/README.md).
 
 ## Fallback: SSD-MobileNetV2
 

@@ -1,0 +1,35 @@
+{
+  "class_names": [
+    "with_mask",
+    "without_mask",
+    "mask_worn_incorrectly"
+  ],
+  "class_colors_rgb": {
+    "with_mask": [
+      0,
+      90,
+      255
+    ],
+    "without_mask": [
+      0,
+      200,
+      0
+    ],
+    "mask_worn_incorrectly": [
+      255,
+      220,
+      0
+    ]
+  },
+  "box_label": "Face detected",
+  "confidence_threshold": 0.45,
+  "iou_threshold": 0.5,
+  "model_url": "models/model.onnx",
+  "model_input": [
+    416,
+    416
+  ],
+  "model_variant": "yolov8s",
+  "model_loaded": true,
+  "static": true
+}

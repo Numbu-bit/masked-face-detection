@@ -14,7 +14,7 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
-      - key: MODEL_URL           # only needed if web/models/model.onnx is NOT committed
+      - key: MODEL_URL           # only needed if web/static/models/model.onnx is NOT committed
         sync: false              # set it in the dashboard (e.g. a GitHub Release asset URL)
       - key: CONF_THRESHOLD
         value: "0.45"

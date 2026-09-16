@@ -3,8 +3,10 @@
 Why a separate export from ``export_model.py``?
 * The browser runs on CPU/WebGPU, so a smaller input (default 416 px) gives a
   usable live-webcam frame rate; the training size (640) is available via ``--imgsz``.
-* The file is written to a fixed location (``web/models/model.onnx``) that the
-  FastAPI server and the Render deployment expect.
+* The file is written to a fixed location (``web/static/models/model.onnx``) that
+  the FastAPI server, a static-site deployment and the Render blueprint expect.
+* ``web/static/config.json`` is regenerated from ``configs/default.yaml`` so a
+  static deployment (no Python backend) has the class names / colours / thresholds.
 * Static shapes, opset 12, no NMS in the graph - what onnxruntime-web handles best.
 
 Usage (repo root)::
@@ -13,8 +15,8 @@ Usage (repo root)::
     python scripts/prepare_web_model.py --weights best.pt --imgsz 640
     python scripts/prepare_web_model.py --check photo.jpg    # also run the ONNX on an image
 
-Then either commit ``web/models/model.onnx`` (~43 MB for yolov8s) or upload it
-somewhere and set ``MODEL_URL`` on Render.
+Then either commit ``web/static/models/model.onnx`` (~43 MB for yolov8s) or upload
+it somewhere and set ``MODEL_URL`` on Render (web-service deployment only).
 """
 
 from __future__ import annotations
@@ -31,7 +33,28 @@ from src.model import build_yolo  # noqa: E402
 from src.utils import find_best_checkpoint, get_logger, load_config  # noqa: E402
 
 log = get_logger("web-export")
-DEST = ROOT / "web" / "models" / "model.onnx"
+DEST = ROOT / "web" / "static" / "models" / "model.onnx"
+
+
+def write_static_config(cfg: dict, imgsz: int, path: Path = ROOT / "web" / "static" / "config.json") -> Path:
+    """Write the subset of the config the browser needs when there is no API (static deploy)."""
+    import json
+
+    payload = {
+        "class_names": cfg["class_names"],
+        "class_colors_rgb": {k: [v[2], v[1], v[0]] for k, v in cfg["class_colors"].items()},
+        "box_label": cfg.get("box_label"),
+        "confidence_threshold": float(cfg["confidence_threshold"]),
+        "iou_threshold": float(cfg["iou_threshold"]),
+        "model_url": "models/model.onnx",
+        "model_input": [imgsz, imgsz],
+        "model_variant": cfg.get("model_variant"),
+        "model_loaded": True,
+        "static": True,
+    }
+    path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    log.info("Wrote %s", path)
+    return path
 
 
 def main() -> None:
@@ -57,6 +80,7 @@ def main() -> None:
     dest.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(out, dest)
     log.info("Saved %s (%.1f MB)", dest, dest.stat().st_size / 1e6)
+    write_static_config(cfg, args.imgsz)
 
     # Sanity-check the graph with onnxruntime (same library the server uses).
     import numpy as np

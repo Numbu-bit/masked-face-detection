@@ -115,7 +115,7 @@
 
         <div class="card text-xs text-slate-400">
           <h2 class="card-title">About</h2>
-          <p>Classes: <em>with_mask</em>, <em>without_mask</em>, <em>mask_worn_incorrectly</em>. Trained with Ultralytics YOLOv8 on the Kaggle Face-Mask dataset; exported to ONNX and executed by onnxruntime-web. Webcam frames stay on your device in browser mode.</p>
+          <p>Every box is labelled <em>Face detected</em>; its <strong>colour</strong> tells the mask status (see the legend in the header): <span class="text-sky-400">blue</span> = mask on, <span class="text-emerald-400">green</span> = no mask, <span class="text-yellow-300">yellow</span> = worn incorrectly. Trained with Ultralytics YOLOv8 on the Kaggle Face-Mask dataset; exported to ONNX and executed by onnxruntime-web. Webcam frames stay on your device in browser mode.</p>
           <p class="mt-2">API: <code class="font-mono">POST /api/detect</code> (multipart <code>file</code>, query <code>conf</code>, <code>iou</code>).</p>
         </div>
       </aside>

@@ -279,6 +279,27 @@ def class_color(cfg: Dict[str, Any], class_name: str) -> Tuple[int, int, int]:
     return int(color[0]), int(color[1]), int(color[2])
 
 
+def color_name(bgr: Sequence[int]) -> str:
+    """Rough human name for a BGR colour (for legends / titles)."""
+    b, g, r = (int(v) for v in bgr)
+    if r > 150 and g > 150 and b < 100:
+        return "yellow"
+    if r > 150 and g < 100 and b < 100:
+        return "red"
+    if g > 150 and r < 100 and b < 100:
+        return "green"
+    if b > 150 and r < 100:
+        return "blue"
+    if r > 150 and 80 < g < 180 and b < 80:
+        return "orange"
+    return f"rgb({r},{g},{b})"
+
+
+def legend_text(cfg: Dict[str, Any]) -> str:
+    """e.g. ``"blue=with_mask, green=without_mask, yellow=mask_worn_incorrectly"``."""
+    return ", ".join(f"{color_name(class_color(cfg, n))}={n}" for n in cfg["class_names"])
+
+
 def summarise_counts(class_ids: Sequence[int], cfg: Dict[str, Any]) -> Dict[str, int]:
     """Count detections per class plus a ``total`` entry.
 
@@ -315,7 +336,10 @@ def draw_detections(
     cfg: Dict[str, Any],
     show_summary: bool = True,
 ) -> np.ndarray:
-    """Draw colour-coded boxes, ``"label 0.94"`` text and a summary banner.
+    """Draw colour-coded boxes, ``"<box_label> 0.94"`` text and a summary banner.
+
+    The box colour encodes the class (``cfg["class_colors"]``); the text is
+    ``cfg["box_label"]`` (default "Face detected") or the class name when unset.
 
     Args:
         image_bgr: Input image (H, W, 3) in BGR. It is copied, not modified.
@@ -340,7 +364,7 @@ def draw_detections(
         color = class_color(cfg, name)
         p1, p2 = (int(x1), int(y1)), (int(x2), int(y2))
         cv2.rectangle(out, p1, p2, color, thickness)
-        label = f"{name} {conf:.2f}"
+        label = f"{cfg.get('box_label') or name} {conf:.2f}"
         (tw, th), baseline = cv2.getTextSize(label, font, font_scale, thickness)
         ty = max(p1[1] - th - baseline - 2, 0)
         cv2.rectangle(out, (p1[0], ty), (p1[0] + tw + 4, ty + th + baseline + 4), color, -1)

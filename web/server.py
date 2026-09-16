@@ -233,6 +233,7 @@ def info() -> Dict[str, Any]:
     return {
         "class_names": CLASS_NAMES,
         "class_colors_rgb": {k: [v[2], v[1], v[0]] for k, v in CLASS_COLORS_BGR.items()},
+        "box_label": CFG.get("box_label"),      # text drawn on boxes; null -> class name
         "confidence_threshold": DEFAULT_CONF,
         "iou_threshold": DEFAULT_IOU,
         "model_url": "/model/model.onnx",

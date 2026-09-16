@@ -13,14 +13,17 @@ there, and resumes automatically after a disconnect.
 
 ## Classes
 
-| id | class                     | colour                 | meaning                                            |
-|----|---------------------------|------------------------|----------------------------------------------------|
-| 0  | `with_mask`               | 🟩 green `(0,200,0)`   | nose and mouth covered                             |
-| 1  | `without_mask`            | 🟥 red `(0,0,220)`     | no mask                                            |
-| 2  | `mask_worn_incorrectly`   | 🟧 orange `(0,140,255)`| mask present but nose or mouth exposed             |
+| id | class                     | box colour               | meaning                                            |
+|----|---------------------------|--------------------------|----------------------------------------------------|
+| 0  | `with_mask`               | 🟦 blue `BGR (255,90,0)` | nose and mouth covered                             |
+| 1  | `without_mask`            | 🟩 green `BGR (0,200,0)` | no mask                                            |
+| 2  | `mask_worn_incorrectly`   | 🟨 yellow `BGR (0,220,255)` | mask present but nose or mouth exposed          |
 
-Colours are BGR (OpenCV) and defined once in `configs/default.yaml → class_colors`.
-Every annotated frame also carries a banner: `Faces: 5 | Masked: 3 | Unmasked: 2 | Incorrect: 0`.
+Every box is labelled **`Face detected 0.94`** (text from `configs/default.yaml → box_label`; set it to
+`null` to show the class name instead) — the **colour** carries the mask status. Colours are BGR
+(OpenCV) and defined once in `configs/default.yaml → class_colors`; the web app, Gradio demo,
+notebooks and exports all read them from there. Every annotated frame also carries a banner:
+`Faces: 5 | Masked: 3 | Unmasked: 2 | Incorrect: 0`.
 
 ---
 

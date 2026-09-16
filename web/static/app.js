@@ -49,6 +49,9 @@ function toast(msg, ms = 4000) {
   clearTimeout(toast._t);
   toast._t = setTimeout(() => (els.toast.style.opacity = "0"), ms);
 }
+function labelFor(d) {
+  return `${state.info?.box_label || d.className} ${d.confidence.toFixed(2)}`;
+}
 function colorFor(name) {
   const c = state.info?.class_colors_rgb?.[name] || [255, 255, 255];
   return `rgb(${c[0]},${c[1]},${c[2]})`;
@@ -98,7 +101,7 @@ function drawOverlay(dets, srcW, srcH) {
     const color = colorFor(d.className);
     ctx.lineWidth = lw; ctx.strokeStyle = color;
     ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
-    const label = `${d.className} ${d.confidence.toFixed(2)}`;
+    const label = labelFor(d);
     const tw = ctx.measureText(label).width + 8, th = parseInt(ctx.font, 10) + 6;
     const ty = Math.max(y1 - th, 0);
     ctx.fillStyle = color; ctx.fillRect(x1, ty, tw, th);
@@ -259,7 +262,7 @@ function downloadSnapshot() {
   for (const d of state.lastDets) {
     const [x1, y1, x2, y2] = d.bbox; const color = colorFor(d.className);
     g.strokeStyle = color; g.strokeRect(x1, y1, x2 - x1, y2 - y1);
-    const label = `${d.className} ${d.confidence.toFixed(2)}`; const tw = g.measureText(label).width + 8, th = parseInt(g.font, 10) + 6;
+    const label = labelFor(d); const tw = g.measureText(label).width + 8, th = parseInt(g.font, 10) + 6;
     g.fillStyle = color; g.fillRect(x1, Math.max(y1 - th, 0), tw, th); g.fillStyle = "#fff"; g.fillText(label, x1 + 4, Math.max(y1 - th, 0) + 3);
   }
   g.fillStyle = "rgba(0,0,0,.7)"; g.fillRect(0, 0, w, 32); g.fillStyle = "#fff"; g.fillText(bannerText(state.lastCounts || {}), 8, 8);

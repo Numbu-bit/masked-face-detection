@@ -19,7 +19,7 @@ import cv2
 import numpy as np
 
 from src.dataset import IMAGE_EXTS, read_yolo_label_file, yolo_to_xyxy
-from src.utils import bgr_to_rgb, draw_detections, ensure_dir, free_memory, get_logger, run_dir
+from src.utils import bgr_to_rgb, draw_detections, ensure_dir, free_memory, get_logger, legend_text, run_dir
 
 log = get_logger(__name__)
 
@@ -271,8 +271,7 @@ def plot_prediction_grid(model: Any, cfg: Dict[str, Any], data_root: Path, split
         ax.axis("off")
     for ax in np.ravel(axes)[len(chosen):]:
         ax.axis("off")
-    fig.suptitle(f"Predictions on {len(chosen)} random {split} images  "
-                 "(green=with_mask, red=without_mask, orange=incorrect)", fontsize=11)
+    fig.suptitle(f"Predictions on {len(chosen)} random {split} images  ({legend_text(cfg)})", fontsize=11)
     fig.tight_layout()
     fig.savefig(ensure_dir(run_dir(cfg) / "eval") / f"prediction_grid_{split}.png", dpi=120)
     return fig

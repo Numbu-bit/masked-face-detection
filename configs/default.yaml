@@ -14,9 +14,14 @@ class_names: ["with_mask", "without_mask", "mask_worn_incorrectly"]
 
 # BGR colours used everywhere boxes are drawn (OpenCV convention).
 class_colors:
-  with_mask: [0, 200, 0]              # green
-  without_mask: [0, 0, 220]           # red
-  mask_worn_incorrectly: [0, 140, 255] # orange
+  with_mask: [255, 90, 0]             # blue
+  without_mask: [0, 200, 0]           # green
+  mask_worn_incorrectly: [0, 220, 255] # yellow
+
+# Text drawn on every box (followed by the confidence). Set to null to show the
+# class name instead. The colour encodes the class; class names still appear in
+# the legend, the counts banner and the JSON output.
+box_label: "Face detected"
 
 # ---- Data -------------------------------------------------------------------
 data_root: "/content/data"      # where the raw dataset is unpacked

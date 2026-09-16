@@ -45,3 +45,4 @@ demo/examples/example_*
 # Web app
 web/node_modules/
 web/models/*.part
+!web/models/model.onnx
